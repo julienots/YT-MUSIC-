@@ -28,9 +28,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       # Restaure la même clé de debug à chaque build : si tu changes de
       # machine/runner sans ça, le SHA-1 change et Google Sign-In cassera
       # (voir README, section "Garder la même clé de debug").
