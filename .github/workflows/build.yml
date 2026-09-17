@@ -1,0 +1,57 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Dézippe AutoMix.zip (commité à la racine du repo) pour retrouver
+      # les sources du projet. Si tu commites les fichiers en clair plutôt
+      # que le zip, tu peux supprimer cette étape.
+      - name: Unzip project
+        run: |
+          if [ -f AutoMix.zip ]; then
+            unzip -o AutoMix.zip -d .
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Restaure la même clé de debug à chaque build : si tu changes de
+      # machine/runner sans ça, le SHA-1 change et Google Sign-In cassera
+      # (voir README, section "Garder la même clé de debug").
+      - name: Restore debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ -n "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
+          fi
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK
+        working-directory: AutoMix
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoMix-debug-apk
+          path: AutoMix/app/build/outputs/apk/debug/app-debug.apk
